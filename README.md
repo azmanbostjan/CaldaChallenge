@@ -34,16 +34,17 @@ https://dbdiagram.io/d/6910db506735e11170f27c67
 
 ## Getting Started prod
 1. **Start local Supabase:**
-bash scripts/deploy_prod.sh
+./scripts/deploy_prod.sh
 2. **Test RLS and backend logic**
 npx supabase db query tests/test_user_orders.sql
 npx supabase db query tests/test_admin_access.sql
 
 ## Getting Started local
 1. **Start local Supabase:**
-bash scripts/deploy_local.sh
+./scripts/deploy_local.sh
 2. **Seed the db**
-npx supabase functions invoke init
+npx supabase functions serve init
+
 3. **Archive old orders manually**
 npx supabase functions invoke archive_old_folders
 4. **Test RLS and backend logic**

@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW dbo.orders_aggregated AS
+CREATE OR REPLACE VIEW vw.orders_aggregated AS
 SELECT
     o.id AS order_id,
     o.user_id,
@@ -22,5 +22,5 @@ SELECT
     ) AS order_items
 FROM dbo.orders o
 LEFT JOIN dbo.order_items oi ON oi.order_id = o.id
-LEFT JOIN dbo.items_catalog ci ON ci.id = oi.item_id
+LEFT JOIN public.items_catalog ci ON ci.id = oi.item_id
 GROUP BY o.id;

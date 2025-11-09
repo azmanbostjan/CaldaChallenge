@@ -1,5 +1,5 @@
 -- =============================================
--- Function: compute_kpis
+-- Function: compute_kpis (fixed search_path)
 -- Computes per-user and marketing KPIs for orders
 -- Optional filters: start_date, end_date, user_ids
 -- =============================================
@@ -19,7 +19,11 @@ RETURNS TABLE (
     highest_value_customer BOOLEAN,
     best_selling_item UUID,
     highest_revenue_item UUID
-) AS $$
+)
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = ''
+AS $$
 DECLARE
     start_date TIMESTAMP;
     end_date TIMESTAMP;
@@ -124,4 +128,4 @@ BEGIN
     CROSS JOIN best_selling_item_cte bsi
     CROSS JOIN highest_revenue_item_cte hri;
 END;
-$$ LANGUAGE plpgsql;
+$$;

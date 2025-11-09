@@ -1,10 +1,13 @@
--- ========================================
--- Consolidated trigger for dbo.items_catalog history
--- Handles INSERT, UPDATE, DELETE
--- ========================================
-
+-- =============================================
+-- Trigger function: log_items_catalog_changes (fixed search_path)
+-- Handles INSERT, UPDATE, DELETE on dbo.items_catalog
+-- =============================================
 CREATE OR REPLACE FUNCTION dbo.log_items_catalog_changes()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = ''
+AS $$
 DECLARE
     action_type TEXT;
 BEGIN
@@ -41,10 +44,14 @@ BEGIN
 
     END IF;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
--- Create a single trigger for all operations
+-- =============================================
+-- Trigger for items_catalog table
+-- =============================================
+DROP TRIGGER IF EXISTS trg_items_catalog_history ON public.items_catalog;
+
 CREATE TRIGGER trg_items_catalog_history
-AFTER INSERT OR UPDATE OR DELETE ON dbo.items_catalog
+AFTER INSERT OR UPDATE OR DELETE ON public.items_catalog
 FOR EACH ROW
 EXECUTE FUNCTION dbo.log_items_catalog_changes();

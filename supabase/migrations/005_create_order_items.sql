@@ -1,7 +1,7 @@
 CREATE TABLE dbo.order_items (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     order_id UUID REFERENCES dbo.orders(id) ON DELETE CASCADE,
-    item_id UUID REFERENCES dbo.items_catalog(id),
+    item_id UUID REFERENCES public.items_catalog(id),
     item_name_snapshot TEXT NOT NULL,
     quantity INTEGER NOT NULL CHECK (quantity > 0),
     price NUMERIC NOT NULL CHECK (price >= 0),
