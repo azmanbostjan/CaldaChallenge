@@ -1,0 +1,48 @@
+# CaldaChallenge Backend Project
+
+## Project Overview
+CaldaChallenge is a backend-only Supabase project simulating a simple e-commerce system. It uses PostgreSQL, Supabase Auth, Edge Functions (Deno + TypeScript), and declarative schema with migrations. Key features include:
+
+- User management (roles: admin, user, guest)
+- Catalog items with history tracking
+- Orders and order items
+- Row-Level Security (RLS) enforcing access per role
+- Cron job for archiving old orders to staging tables
+- KPI computation for marketing and performance metrics
+- Create_order checks if item is in stock, if not it rejects the order, if in stock it decreases stock amount by ordered amount
+
+## Project Structure
+CaldaChallenge/
+├─ scripts/
+├─ supabase/
+│ ├─ functions/ # Edge functions (create_user, create_order, cron jobs)
+│ ├─ migrations/ # Table creation, triggers, RLS, views
+│ ├─ seeds/ # Initial data
+│ └─ config.toml # Supabase CLI config
+├─ tests/ # SQL scripts for RLS and other backend tests
+├─ README.md
+
+## Db schema diagram url:
+https://dbdiagram.io/d/6910db506735e11170f27c67
+
+## As job scheduler is not available locally, i recommend pushing to prod or running scheduled functions manually
+## As edge functions are not published with code using supabase start, i added a bash script to publish all edge function
+## As i could only install Supabase locally i used npx prefix 
+
+## Getting Started prod
+1. **Start local Supabase:**
+bash scripts/deploy_prod.sh
+2. **Test RLS and backend logic**
+npx supabase db query tests/test_user_orders.sql
+npx supabase db query tests/test_admin_access.sql
+
+## Getting Started local
+1. **Start local Supabase:**
+bash scripts/deploy_local.sh
+2. **Seed the db**
+npx supabase functions invoke init
+3. **Archive old orders manually**
+npx supabase functions invoke archive_old_folders
+4. **Test RLS and backend logic**
+npx supabase db query tests/test_user_orders.sql
+npx supabase db query tests/test_admin_access.sql

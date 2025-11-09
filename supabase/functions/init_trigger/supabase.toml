@@ -1,0 +1,6 @@
+name = "init_trigger"
+runtime = "edge"
+
+# Cron-style schedule
+# @reboot ensures the function runs automatically on instance start (only works in production)
+schedule = "@reboot"

@@ -1,0 +1,27 @@
+[
+  {
+    "email": "azmanbostjan+1@gmail.com",
+    "password": "password123",
+    "role": "user"
+  },
+  {
+    "email": "azmanbostjan+2@gmail.com",
+    "password": "password123",
+    "role": "user"
+  },
+  {
+    "email": "azmanbostjan+3@gmail.com",
+    "password": "password123",
+    "role": "user"
+  },
+  {
+    "email": "azmanbostjan+admin@gmail.com",
+    "password": "password123",
+    "role": "admin"
+  },
+  {
+    "email": "azmanbostjan+4@gmail.com",
+    "password": "password123",
+    "role": "user"
+  }
+]
