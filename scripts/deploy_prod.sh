@@ -26,6 +26,7 @@ echo "Deploying all edge functions..."
 for dir in "$FUNCTIONS_DIR"/*/; do
   func_name=$(basename "$dir")
   echo "Deploying function: $func_name"
+  # Removed --no-verify-jwt flag to avoid decorator warning
   npx supabase functions deploy "$func_name" || echo "Failed to deploy $func_name, continuing..."
 done
 

@@ -11,6 +11,12 @@ CaldaChallenge is a backend-only Supabase project simulating a simple e-commerce
 - KPI computation for marketing and performance metrics
 - Create_order checks if item is in stock, if not it rejects the order, if in stock it decreases stock amount by ordered amount
 
+Author's notes:
+Because job scheduler is not available locally, i recommend pushing to prod or running scheduled functions manually.
+Edge functions are not published with code using supabase start, so i added a bash script to publish all edge function before calling supabase start
+Commands are prefixed with npx, as i installed Supabase under a local user
+
+
 ## Project Structure
 ```
 CaldaChallenge/
@@ -25,10 +31,6 @@ CaldaChallenge/
 ```
 ## Db schema diagram url:
 https://dbdiagram.io/d/6910db506735e11170f27c67
-
-## As job scheduler is not available locally, i recommend pushing to prod or running scheduled functions manually
-## As edge functions are not published with code using supabase start, i added a bash script to publish all edge function
-## As i could only install Supabase locally i used npx prefix 
 
 ## Getting Started prod
 1. **Start local Supabase:**

@@ -22,7 +22,8 @@ echo "Deploying all edge functions locally..."
 for dir in "$FUNCTIONS_DIR"/*/; do
   func_name=$(basename "$dir")
   echo "Deploying function: $func_name"
-  npx supabase functions deploy "$func_name" --no-verify-jwt || echo "Failed to deploy $func_name, continuing..."
+  # Removed --no-verify-jwt flag to avoid decorator warning
+  npx supabase functions deploy "$func_name" || echo "Failed to deploy $func_name, continuing..."
 done
 
 echo "Starting Supabase locally..."
