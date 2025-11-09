@@ -1,4 +1,4 @@
-CREATE OR REPLACE VIEW vw.orders_aggregated AS
+CREATE OR REPLACE VIEW dbo.orders_aggregated AS
 SELECT
     o.id AS order_id,
     o.user_id,
@@ -20,7 +20,7 @@ SELECT
         ) FILTER (WHERE oi.id IS NOT NULL),
         '[]'
     ) AS order_items
-FROM orders o
-LEFT JOIN order_items oi ON oi.order_id = o.id
-LEFT JOIN items_catalog ci ON ci.id = oi.item_id
+FROM dbo.orders o
+LEFT JOIN dbo.order_items oi ON oi.order_id = o.id
+LEFT JOIN dbo.items_catalog ci ON ci.id = oi.item_id
 GROUP BY o.id;

@@ -3,7 +3,7 @@
 -- Computes per-user and marketing KPIs for orders
 -- Optional filters: start_date, end_date, user_ids
 -- =============================================
-CREATE OR REPLACE FUNCTION compute_kpis(
+CREATE OR REPLACE FUNCTION dbo.compute_kpis(
     p_start_date TIMESTAMP DEFAULT NULL,
     p_end_date TIMESTAMP DEFAULT NULL,
     p_user_ids UUID[] DEFAULT NULL
