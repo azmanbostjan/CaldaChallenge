@@ -12,6 +12,7 @@ CaldaChallenge is a backend-only Supabase project simulating a simple e-commerce
 - Create_order checks if item is in stock, if not it rejects the order, if in stock it decreases stock amount by ordered amount
 
 ## Project Structure
+```
 CaldaChallenge/
 ├─ scripts/
 ├─ supabase/
@@ -21,7 +22,7 @@ CaldaChallenge/
 │ └─ config.toml # Supabase CLI config
 ├─ tests/ # SQL scripts for RLS and other backend tests
 ├─ README.md
-
+```
 ## Db schema diagram url:
 https://dbdiagram.io/d/6910db506735e11170f27c67
 
