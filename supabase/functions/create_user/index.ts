@@ -5,7 +5,7 @@ const supabase = createClient(
   Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
 );
 
-// create_user: Creates (or ensures) a user exists in both Auth and public.users
+// create_user: Creates (or ensures) a user exists in both Auth and users
 Deno.serve(async (req: Request) => {
   try {
     if (req.method !== "POST") {
@@ -49,7 +49,7 @@ Deno.serve(async (req: Request) => {
 
     // Ensure a row exists in your app's users table
     const { error: upsertError } = await supabase
-      .from("public.users")
+      .from("users")
       .upsert(
         {
           id: user.id,
@@ -65,7 +65,7 @@ Deno.serve(async (req: Request) => {
     return new Response(JSON.stringify({ user }), { status: 200 });
   } catch (err) {
     try {
-      await supabase.from("public.function_errors").insert([
+      await supabase.from("function_errors").insert([
         {
           function_name: "create_user",
           error_message: (err as Error).message,
