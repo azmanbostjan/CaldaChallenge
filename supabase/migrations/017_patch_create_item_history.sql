@@ -3,17 +3,17 @@
 -- =============================================
 
 -- Drop old trigger if it exists
-DROP TRIGGER IF EXISTS trg_items_catalog_history ON public.items_catalog;
+DROP TRIGGER IF EXISTS trg_items_catalog_history ON items_catalog;
 
 -- Replace trigger function
-CREATE OR REPLACE FUNCTION public.track_item_changes()
+CREATE OR REPLACE FUNCTION track_item_changes()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY INVOKER
 AS $$
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        INSERT INTO public.item_history(
+        INSERT INTO item_history(
             item_id,
             old_price,
             new_price,
@@ -34,7 +34,7 @@ BEGIN
         RETURN NEW;
 
     ELSIF TG_OP = 'UPDATE' THEN
-        INSERT INTO public.item_history(
+        INSERT INTO item_history(
             item_id,
             old_price,
             new_price,
@@ -55,7 +55,7 @@ BEGIN
         RETURN NEW;
 
     ELSIF TG_OP = 'DELETE' THEN
-        INSERT INTO public.item_history(
+        INSERT INTO item_history(
             item_id,
             old_price,
             new_price,
@@ -82,6 +82,6 @@ $$;
 
 -- Re-attach trigger to items_catalog
 CREATE TRIGGER trg_items_catalog_history
-AFTER INSERT OR UPDATE OR DELETE ON public.items_catalog
+AFTER INSERT OR UPDATE OR DELETE ON items_catalog
 FOR EACH ROW
-EXECUTE FUNCTION public.track_item_changes();
+EXECUTE FUNCTION track_item_changes();

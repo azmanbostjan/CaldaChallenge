@@ -8,12 +8,12 @@ const supabase = createClient(
 interface OrderItemInput {
     item_id: string;
     quantity: number;
+    item_name_snapshot: string;
+    price: number;
 }
 
-// create_order: Accepts a POST request with user_id, shipping_address, recipient_name, and order items,
-// calculates the sum of all existing orders, inserts the new order and its items into the database,
-// and returns the sum of other orders. Uses the service role key to bypass RLS restrictions.
-Deno.serve(async (req: Request) => {
+
+Deno.serve(async (req: Request): Promise<Response> => {
     try {
         if (req.method !== "POST") {
             return new Response(
@@ -23,68 +23,134 @@ Deno.serve(async (req: Request) => {
         }
 
         const body = await req.json();
-        const { user_id, shipping_address, recipient_name, items } = body;
+        const {
+            user_id,
+            shipping_address,
+            recipient_name,
+            status,
+            items,
+            created_at,
+        } = body;
+
+        // === VALIDATE PAYLOAD FIRST ===
         if (
-            !user_id || !shipping_address || !recipient_name ||
-            !Array.isArray(items)
+            !user_id ||
+            !shipping_address ||
+            !recipient_name ||
+            !Array.isArray(items) ||
+            items.length === 0 ||
+            items.some((i: { item_id?: string; quantity?: number }) =>
+                !i.item_id || i.quantity == null
+            )
         ) {
-            return new Response(JSON.stringify({ error: "Invalid payload" }), {
-                status: 400,
-            });
+            throw new Error(
+                `Invalid payload: missing required field(s) or malformed items. Payload received: ${
+                    JSON.stringify(
+                        {
+                            user_id,
+                            shipping_address,
+                            recipient_name,
+                            items,
+                            created_at,
+                        },
+                        null,
+                        2,
+                    )
+                }`,
+            );
+        }
+        // Check if this order already exists (same user + address + recipient)
+        const { data: existingOrder, error: existingError } = await supabase
+            .from("orders")
+            .select("id")
+            .eq("user_id", user_id)
+            .eq("shipping_address", shipping_address)
+            .eq("recipient_name", recipient_name)
+            .maybeSingle();
+
+        if (existingError) throw existingError;
+
+        let orderId: string;
+
+        if (existingOrder) {
+            orderId = existingOrder.id;
+            console.log("Skipped existing order for user:", user_id);
+        } else {
+            // Insert new order using status and created_at from payload
+            const { data: newOrder, error: orderError } = await supabase
+                .from("orders")
+                .insert({
+                    user_id,
+                    shipping_address,
+                    recipient_name,
+                    status, // <- take directly from payload
+                    ...(created_at &&
+                        { created_at: new Date(created_at).toISOString() }),
+                })
+                .select()
+                .single();
+
+            if (orderError) throw orderError;
+            orderId = newOrder.id;
+            console.log("Inserted new order for user:", user_id);
         }
 
-        const { data: existingItems, error: sumError } = await supabase.from(
-            "order_items",
-        ).select("quantity, price");
-        if (sumError) throw sumError;
+        // Insert order items idempotently
+        for (const i of items as OrderItemInput[]) {
+            const { data: existingOrderItem, error: checkItemError } =
+                await supabase
+                    .from("order_items")
+                    .select("id")
+                    .eq("order_id", orderId)
+                    .eq("item_id", i.item_id)
+                    .maybeSingle();
 
-        const sumOfOtherOrders = existingItems?.reduce(
-            (acc: number, item: { quantity: number; price: number }) =>
-                acc + Number(item.price) * item.quantity,
-            0,
-        ) || 0;
+            if (checkItemError) throw checkItemError;
 
-        const { data: newOrder, error: orderError } = await supabase
-            .from("orders")
-            .insert({
-                user_id,
-                shipping_address,
-                recipient_name,
-                status: "basket",
-            })
-            .select()
-            .single();
-        if (orderError) throw orderError;
+            if (!existingOrderItem) {
+                const { error: itemInsertError } = await supabase.from(
+                    "order_items",
+                ).insert([
+                    {
+                        order_id: orderId,
+                        item_id: i.item_id,
+                        item_name_snapshot: i.item_name_snapshot,
+                        quantity: i.quantity,
+                        price: i.price,
+                    },
+                ]);
 
-        const orderItemsPayload = items.map((i: OrderItemInput) => ({
-            order_id: newOrder.id,
-            item_id: i.item_id,
-            quantity: i.quantity,
-        }));
-
-        const { error: itemsError } = await supabase.from("order_items").insert(
-            orderItemsPayload,
-        );
-        if (itemsError) throw itemsError;
+                if (itemInsertError) throw itemInsertError;
+                console.log(`Added item ${i.item_id} to order ${orderId}`);
+            } else {
+                console.log(
+                    `Skipped existing item ${i.item_id} for order ${orderId}`,
+                );
+            }
+        }
 
         return new Response(
-            JSON.stringify({ order_id: newOrder.id, sumOfOtherOrders }),
+            JSON.stringify({ order_id: orderId }),
             { status: 200 },
         );
     } catch (err) {
+        // Log function errors
         try {
-            await supabase.from("function_errors").insert([{
-                function_name: "create_order",
-                error_message: (err as Error).message,
-                payload: null,
-                created_at: new Date().toISOString(),
-            }]);
-        } catch (err) {
-            console.error("Failed to log error:", err);
+            await supabase.from("function_errors").insert([
+                {
+                    function_name: "create_order",
+                    error_message: (err as Error).message,
+                    payload: JSON.stringify(req.body ?? null),
+                    created_at: new Date().toISOString(),
+                },
+            ]);
+        } catch (logErr) {
+            console.error("Failed to log error:", logErr);
         }
 
-        return new Response(JSON.stringify({ error: (err as Error).message }), {
-            status: 500,
-        });
+        return new Response(
+            JSON.stringify({ error: (err as Error).message }),
+            { status: 500 },
+        );
     }
 });
