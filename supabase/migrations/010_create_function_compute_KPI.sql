@@ -1,8 +1,3 @@
--- =============================================
--- Function: compute_kpis (fixed search_path)
--- Computes per-user and marketing KPIs for orders
--- Optional filters: start_date, end_date, user_ids
--- =============================================
 CREATE OR REPLACE FUNCTION public.compute_kpis(
     p_start_date TIMESTAMP DEFAULT NULL,
     p_end_date TIMESTAMP DEFAULT NULL,
@@ -23,90 +18,92 @@ RETURNS TABLE (
 LANGUAGE plpgsql
 SECURITY INVOKER
 SET search_path = ''
-AS $$
+AS $func$
 DECLARE
-    start_date TIMESTAMP;
-    end_date TIMESTAMP;
+    v_start_date TIMESTAMP;
+    v_end_date TIMESTAMP;
 BEGIN
-    start_date := COALESCE(p_start_date, (SELECT MIN(created_at) FROM public.stg_orders));
-    end_date := COALESCE(p_end_date, NOW());
+    v_start_date := COALESCE(p_start_date, (SELECT MIN(created_at) FROM public.stg_orders));
+    v_end_date := COALESCE(p_end_date, NOW());
 
+    RETURN QUERY
     WITH filtered_orders AS (
         SELECT *
-        FROM public.stg_orders
-        WHERE created_at BETWEEN start_date AND end_date
-          AND (p_user_ids IS NULL OR user_id = ANY(p_user_ids))
+        FROM public.stg_orders so
+        WHERE so.created_at BETWEEN v_start_date AND v_end_date
+          AND (p_user_ids IS NULL OR so.user_id = ANY(p_user_ids))
     ),
     user_orders AS (
         SELECT 
-            o.id AS order_id,
-            o.user_id,
-            u.email AS user_email,
-            o.order_total
-        FROM filtered_orders o
-        JOIN public.users u ON o.user_id = u.id
+            fo.id AS order_id,
+            fo.user_id AS uo_user_id,
+            u.email AS uo_user_email,
+            fo.order_total AS uo_order_total
+        FROM filtered_orders fo
+        JOIN public.users u ON fo.user_id = u.id
     ),
     user_order_items AS (
         SELECT
-            uo.user_id,
-            oi.item_id,
+            uo.uo_user_id AS uoi_user_id,
+            oi.item_id AS uoi_item_id,
             SUM(oi.quantity) AS total_quantity,
             SUM(oi.quantity * oi.price) AS total_revenue_item
         FROM public.stg_order_items oi
         JOIN user_orders uo ON oi.order_id = uo.order_id
-        GROUP BY uo.user_id, oi.item_id
+        GROUP BY uo.uo_user_id, oi.item_id
     ),
     most_ordered_per_user AS (
-        SELECT DISTINCT ON (user_id)
-            user_id,
-            item_id AS most_ordered_item
+        SELECT DISTINCT ON (uoi_user_id)
+            uoi_user_id,
+            uoi_item_id AS most_ordered_item
         FROM user_order_items
-        ORDER BY user_id, total_quantity DESC
+        ORDER BY uoi_user_id, total_quantity DESC
     ),
     total_revenue_per_user AS (
         SELECT 
-            user_id,
-            SUM(order_total) AS total_revenue,
-            COUNT(*) AS total_orders,
-            AVG(order_total) AS avg_order_value
+            uo_user_id AS tru_user_id,
+            uo_user_email AS tru_user_email,
+            SUM(uo_order_total) AS tru_total_revenue,
+            COUNT(*) AS tru_total_orders,
+            AVG(uo_order_total) AS tru_avg_order_value
         FROM user_orders
-        GROUP BY user_id
+        GROUP BY uo_user_id, uo_user_email
     ),
     highest_value_user AS (
-        SELECT user_id
+        SELECT tru_user_id
         FROM total_revenue_per_user
-        ORDER BY total_revenue DESC
+        ORDER BY tru_total_revenue DESC
         LIMIT 1
     ),
     best_selling_item_cte AS (
-        SELECT item_id
+        SELECT oi.item_id
         FROM public.stg_order_items oi
         JOIN user_orders uo ON oi.order_id = uo.order_id
-        GROUP BY item_id
-        ORDER BY SUM(quantity) DESC
+        GROUP BY oi.item_id
+        ORDER BY SUM(oi.quantity) DESC
         LIMIT 1
     ),
     highest_revenue_item_cte AS (
-        SELECT item_id
+        SELECT oi.item_id
         FROM public.stg_order_items oi
         JOIN user_orders uo ON oi.order_id = uo.order_id
-        GROUP BY item_id
-        ORDER BY SUM(quantity * price) DESC
+        GROUP BY oi.item_id
+        ORDER BY SUM(oi.quantity * oi.price) DESC
         LIMIT 1
     )
     SELECT
         'user' AS kpi_type,
-        tru.user_id,
-        tru.user_email,
-        tru.total_orders,
-        tru.total_revenue,
-        tru.avg_order_value,
+        tru.tru_user_id AS user_id,
+        tru.tru_user_email AS user_email,
+        tru.tru_total_orders AS total_orders,
+        tru.tru_total_revenue AS total_revenue,
+        tru.tru_avg_order_value AS avg_order_value,
         mop.most_ordered_item,
-        CASE WHEN tru.user_id = hv.user_id THEN TRUE ELSE FALSE END AS highest_value_customer,
+        CASE WHEN tru.tru_user_id = hv.tru_user_id THEN TRUE ELSE FALSE END AS highest_value_customer,
         bsi.item_id AS best_selling_item,
         hri.item_id AS highest_revenue_item
     FROM total_revenue_per_user tru
-    LEFT JOIN most_ordered_per_user mop ON tru.user_id = mop.user_id
+    LEFT JOIN most_ordered_per_user mop ON tru.tru_user_id = mop.uoi_user_id
     CROSS JOIN highest_value_user hv
     CROSS JOIN best_selling_item_cte bsi
     CROSS JOIN highest_revenue_item_cte hri
@@ -117,9 +114,9 @@ BEGIN
         'marketing' AS kpi_type,
         NULL AS user_id,
         NULL AS user_email,
-        SUM(tru.total_orders) AS total_orders,
-        SUM(tru.total_revenue) AS total_revenue,
-        AVG(tru.avg_order_value) AS avg_order_value,
+        SUM(tru.tru_total_orders) AS total_orders,
+        SUM(tru.tru_total_revenue) AS total_revenue,
+        AVG(tru.tru_avg_order_value) AS avg_order_value,
         NULL AS most_ordered_item,
         TRUE AS highest_value_customer,
         bsi.item_id AS best_selling_item,
@@ -127,5 +124,6 @@ BEGIN
     FROM total_revenue_per_user tru
     CROSS JOIN best_selling_item_cte bsi
     CROSS JOIN highest_revenue_item_cte hri;
+
 END;
-$$;
+$func$;

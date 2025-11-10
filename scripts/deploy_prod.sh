@@ -58,8 +58,18 @@ echo "Production deployment complete."
 # 6. Call init function
 # -----------------------------
 echo "Triggering init function..."
-curl -s -X POST "https://meuaffzjyxsphdwyeany.functions.supabase.co/init" \
-  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ldWFmZnpqeXhzcGhkd3llYW55Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjQ2MDc0MSwiZXhwIjoyMDc4MDM2NzQxfQ.dJINYNyreXI0JYorWD_kV4DhWkbSCo8BL4yLtqZ1Yxg" \
+
+# Prompt the user for their service role key
+read -p "Enter your SUPABASE_SERVICE_ROLE_KEY: " SERVICE_KEY
+
+# Construct the function URL dynamically using the project ref
+# Supabase Edge Functions URL format: https://<project_ref>.functions.supabase.co/<function_name>
+INIT_URL="https://${PROJECT_REF}.functions.supabase.co/init"
+
+# Trigger the init function
+curl -s -X POST "$INIT_URL" \
+  -H "Authorization: Bearer $SERVICE_KEY" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Functions"}'
-echo "Init function triggered."
+  -d '{}' 
+
+echo "Init function triggered at $INIT_URL"
