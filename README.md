@@ -17,6 +17,7 @@ Edge functions are not published with code using supabase start, so i added a ba
 Commands are prefixed with npx, as i installed Supabase under a local user
 TODO
 for local dev .env also has to be set, see .env.example
+TODO in local env chron and some other images are not present, so seed is not imported automatically on project start like in prod
 
 
 ## Project Structure

@@ -53,3 +53,13 @@ echo "Applying database migrations..."
 npx supabase db push
 
 echo "Production deployment complete."
+
+# -----------------------------
+# 6. Call init function
+# -----------------------------
+echo "Triggering init function..."
+curl -s -X POST "https://meuaffzjyxsphdwyeany.functions.supabase.co/init" \
+  -H "Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1ldWFmZnpqeXhzcGhkd3llYW55Iiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjQ2MDc0MSwiZXhwIjoyMDc4MDM2NzQxfQ.dJINYNyreXI0JYorWD_kV4DhWkbSCo8BL4yLtqZ1Yxg" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Functions"}'
+echo "Init function triggered."
