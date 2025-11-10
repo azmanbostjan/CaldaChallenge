@@ -34,7 +34,7 @@ Deno.serve(async (req: Request) => {
         }
 
         const { data: existingItems, error: sumError } = await supabase.from(
-            "dbo.order_items",
+            "public.order_items",
         ).select("quantity, price");
         if (sumError) throw sumError;
 
@@ -45,7 +45,7 @@ Deno.serve(async (req: Request) => {
         ) || 0;
 
         const { data: newOrder, error: orderError } = await supabase
-            .from("dbo.orders")
+            .from("public.orders")
             .insert({
                 user_id,
                 shipping_address,
@@ -62,7 +62,7 @@ Deno.serve(async (req: Request) => {
             quantity: i.quantity,
         }));
 
-        const { error: itemsError } = await supabase.from("dbo.order_items").insert(
+        const { error: itemsError } = await supabase.from("public.order_items").insert(
             orderItemsPayload,
         );
         if (itemsError) throw itemsError;
@@ -73,7 +73,7 @@ Deno.serve(async (req: Request) => {
         );
     } catch (err) {
         try {
-            await supabase.from("dbo.function_errors").insert([{
+            await supabase.from("public.function_errors").insert([{
                 function_name: "create_order",
                 error_message: (err as Error).message,
                 payload: null,

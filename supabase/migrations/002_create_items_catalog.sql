@@ -1,4 +1,4 @@
--- Enum type stays in dbo (schema-qualified)
+-- Enum type stays in public (schema-qualified)
 CREATE TYPE public.item_status AS ENUM ('Available','Out of stock','Discontinued');
 
 -- Table in public schema

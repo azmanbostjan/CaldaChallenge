@@ -5,9 +5,9 @@ SET LOCAL ROLE 'admin';
 
 -- Step 1: Create a test order older than 7 days
 WITH new_order AS (
-    INSERT INTO dbo.orders (user_id, shipping_address, recipient_name, status, created_at)
+    INSERT INTO public.orders (user_id, shipping_address, recipient_name, status, created_at)
     VALUES (
-        (SELECT id FROM dbo.users LIMIT 1),
+        (SELECT id FROM public.users LIMIT 1),
         '123 Test St',
         'Test User',
         'completed',
@@ -15,10 +15,10 @@ WITH new_order AS (
     )
     RETURNING id
 )
-INSERT INTO dbo.order_items (order_id, item_id, quantity, price)
+INSERT INTO public.order_items (order_id, item_id, quantity, price)
 SELECT no.id, ic.id, 1, ic.price
 FROM new_order no
-CROSS JOIN dbo.items_catalog ic
+CROSS JOIN public.items_catalog ic
 LIMIT 1;
 
 -- Step 2: Invoke the archive function
@@ -26,7 +26,7 @@ SELECT archive_old_orders(); -- assuming the RPC function exists
 
 -- Step 3: Verify the order moved to staging
 WITH staged_order AS (
-    SELECT * FROM stg.stg_orders
+    SELECT * FROM public.stg_orders
     WHERE created_at < NOW() - INTERVAL '7 days'
 )
 SELECT
@@ -38,8 +38,8 @@ FROM staged_order;
 
 -- Step 4: Verify the order items moved to staging
 WITH staged_items AS (
-    SELECT * FROM stg.stg_order_items
-    WHERE order_id IN (SELECT id FROM stg.stg_orders)
+    SELECT * FROM public.stg_order_items
+    WHERE order_id IN (SELECT id FROM public.stg_orders)
 )
 SELECT
     CASE
@@ -48,15 +48,15 @@ SELECT
     END
 FROM staged_items;
 
--- Step 5: Verify the original dbo.orders no longer contains the archived order
+-- Step 5: Verify the original public.orders no longer contains the archived order
 WITH remaining_orders AS (
-    SELECT * FROM dbo.orders
+    SELECT * FROM public.orders
     WHERE created_at < NOW() - INTERVAL '7 days'
 )
 SELECT
     CASE
         WHEN COUNT(*) = 0 THEN RAISE NOTICE 'Original orders table cleared OK'
-        ELSE RAISE EXCEPTION 'Archived orders still exist in dbo.orders!'
+        ELSE RAISE EXCEPTION 'Archived orders still exist in public.orders!'
     END
 FROM remaining_orders;
 

@@ -1,8 +1,8 @@
 -- =============================================
 -- Trigger function: log_items_catalog_changes (fixed search_path)
--- Handles INSERT, UPDATE, DELETE on dbo.items_catalog
+-- Handles INSERT, UPDATE, DELETE on public.items_catalog
 -- =============================================
-CREATE OR REPLACE FUNCTION dbo.log_items_catalog_changes()
+CREATE OR REPLACE FUNCTION public.log_items_catalog_changes()
 RETURNS TRIGGER
 LANGUAGE plpgsql
 SECURITY INVOKER
@@ -14,7 +14,7 @@ BEGIN
     -- Determine the operation type
     IF TG_OP = 'INSERT' THEN
         action_type := 'INSERT';
-        INSERT INTO dbo.item_history(
+        INSERT INTO public.item_history(
             item_id, name, description, price, stock, status, changed_at, change_type
         )
         VALUES (
@@ -24,7 +24,7 @@ BEGIN
 
     ELSIF TG_OP = 'UPDATE' THEN
         action_type := 'UPDATE';
-        INSERT INTO dbo.item_history(
+        INSERT INTO public.item_history(
             item_id, name, description, price, stock, status, changed_at, change_type
         )
         VALUES (
@@ -34,7 +34,7 @@ BEGIN
 
     ELSIF TG_OP = 'DELETE' THEN
         action_type := 'DELETE';
-        INSERT INTO dbo.item_history(
+        INSERT INTO public.item_history(
             item_id, name, description, price, stock, status, changed_at, change_type
         )
         VALUES (
@@ -54,4 +54,4 @@ DROP TRIGGER IF EXISTS trg_items_catalog_history ON public.items_catalog;
 CREATE TRIGGER trg_items_catalog_history
 AFTER INSERT OR UPDATE OR DELETE ON public.items_catalog
 FOR EACH ROW
-EXECUTE FUNCTION dbo.log_items_catalog_changes();
+EXECUTE FUNCTION public.log_items_catalog_changes();

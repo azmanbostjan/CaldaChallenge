@@ -13,8 +13,8 @@ SELECT current_setting('jwt.claims.email');
 
 -- Replace with your user ID retrieval method if needed
 WITH user_orders AS (
-    SELECT * FROM dbo.orders
-    WHERE user_id = (SELECT id FROM dbo.users WHERE email = 'azmanbostjan+1@gmail.com')
+    SELECT * FROM public.orders
+    WHERE user_id = (SELECT id FROM public.users WHERE email = 'azmanbostjan+1@gmail.com')
 )
 SELECT
     CASE
@@ -24,8 +24,8 @@ FROM user_orders;
 
 -- Test: user1 cannot see other users' orders
 WITH forbidden_orders AS (
-    SELECT * FROM dbo.orders
-    WHERE user_id != (SELECT id FROM dbo.users WHERE email = 'azmanbostjan+1@gmail.com')
+    SELECT * FROM public.orders
+    WHERE user_id != (SELECT id FROM public.users WHERE email = 'azmanbostjan+1@gmail.com')
 )
 SELECT
     CASE

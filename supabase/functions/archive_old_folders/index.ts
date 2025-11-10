@@ -38,7 +38,7 @@ Deno.serve(async (req: Request) => {
             .toISOString();
 
         const { data: oldOrders, error: selectError } = await supabase
-            .from("dbo.orders")
+            .from("public.orders")
             .select(`
                 id,
                 user_id,
@@ -47,7 +47,7 @@ Deno.serve(async (req: Request) => {
                 status,
                 created_at,
                 updated_at,
-                order_items:dbo.order_items(id, item_id, quantity, price, created_at, updated_at)
+                order_items:public.order_items(id, item_id, quantity, price, created_at, updated_at)
             `)
             .lt("created_at", oneWeekAgo);
 
@@ -69,7 +69,7 @@ Deno.serve(async (req: Request) => {
                 0,
             );
 
-            const { error: stgOrderError } = await supabase.from("stg.stg_orders")
+            const { error: stgOrderError } = await supabase.from("public.stg_orders")
                 .insert([{
                     id: order.id,
                     user_id: order.user_id,
@@ -92,13 +92,13 @@ Deno.serve(async (req: Request) => {
             }));
 
             const { error: stgItemsError } = await supabase.from(
-                "stg.stg_order_items",
+                "public.stg_order_items",
             ).insert(stgItemsPayload);
             if (stgItemsError) throw stgItemsError;
         }
 
         const oldOrderIds = (oldOrders as Order[]).map((o) => o.id);
-        const { error: deleteError } = await supabase.from("dbo.orders").delete()
+        const { error: deleteError } = await supabase.from("public.orders").delete()
             .in("id", oldOrderIds);
         if (deleteError) throw deleteError;
 
@@ -112,7 +112,7 @@ Deno.serve(async (req: Request) => {
     } catch (err) {
         // Log to function_errors table
         try {
-            await supabase.from("dbo.function_errors").insert([{
+            await supabase.from("public.function_errors").insert([{
                 function_name: "archive_old_orders",
                 error_message: (err as Error).message,
                 payload: null,

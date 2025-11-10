@@ -1,8 +1,11 @@
 -- =============================================
--- Trigger function: track_item_changes
--- Tracks all CRUD operations on items_catalog
--- Only stores old/new price and operation type
+-- Migration: patch item_history trigger to track all CRUD operations
 -- =============================================
+
+-- Drop old trigger if it exists
+DROP TRIGGER IF EXISTS trg_items_catalog_history ON public.items_catalog;
+
+-- Replace trigger function
 CREATE OR REPLACE FUNCTION public.track_item_changes()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -73,15 +76,11 @@ BEGIN
         RETURN OLD;
     END IF;
 
-    RETURN NULL; -- fallback
+    RETURN NULL;
 END;
 $$;
 
--- =============================================
--- Attach trigger to items_catalog
--- =============================================
-DROP TRIGGER IF EXISTS trg_items_catalog_history ON public.items_catalog;
-
+-- Re-attach trigger to items_catalog
 CREATE TRIGGER trg_items_catalog_history
 AFTER INSERT OR UPDATE OR DELETE ON public.items_catalog
 FOR EACH ROW

@@ -1,16 +1,16 @@
--- Enum type in dbo schema
-CREATE TYPE dbo.order_status AS ENUM ('Basket','Ordered','Paid','Shipped','Received');
+-- Enum type in public schema
+CREATE TYPE public.order_status AS ENUM ('Basket','Ordered','Paid','Shipped','Received');
 
--- Orders table in dbo schema
-CREATE TABLE dbo.orders (
+-- Orders table in public schema
+CREATE TABLE public.orders (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    user_id UUID REFERENCES dbo.users(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
     shipping_address TEXT NOT NULL,
     recipient_name TEXT NOT NULL,
-    status dbo.order_status NOT NULL DEFAULT 'Basket',
+    status public.order_status NOT NULL DEFAULT 'Basket',
     created_at TIMESTAMP NOT NULL DEFAULT now(),
     updated_at TIMESTAMP NOT NULL DEFAULT now()
 );
 
 -- Index with schema-qualified table
-CREATE INDEX idx_orders_status ON dbo.orders(status);
+CREATE INDEX idx_orders_status ON public.orders(status);

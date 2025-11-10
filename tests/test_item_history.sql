@@ -9,7 +9,7 @@ WHERE id = (SELECT id FROM public.items_catalog LIMIT 1);
 
 -- Check that item_history recorded the change
 WITH hist AS (
-    SELECT * FROM dbo.item_history
+    SELECT * FROM public.item_history
     WHERE item_id = (SELECT id FROM public.items_catalog LIMIT 1)
     ORDER BY changed_at DESC
     LIMIT 1

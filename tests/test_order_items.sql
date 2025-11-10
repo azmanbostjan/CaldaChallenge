@@ -6,9 +6,9 @@ SET LOCAL ROLE 'user';
 -- Check that order_items snapshots match the original order
 WITH user_order_items AS (
     SELECT oi.*, o.user_id
-    FROM dbo.order_items oi
-    JOIN dbo.orders o ON o.id = oi.order_id
-    WHERE o.user_id = (SELECT id FROM dbo.users WHERE email = 'azmanbostjan+1@gmail.com')
+    FROM public.order_items oi
+    JOIN public.orders o ON o.id = oi.order_id
+    WHERE o.user_id = (SELECT id FROM public.users WHERE email = 'azmanbostjan+1@gmail.com')
 )
 SELECT
     CASE
@@ -19,9 +19,9 @@ FROM user_order_items;
 -- Test that user1 cannot see order_items of other users
 WITH forbidden_oi AS (
     SELECT oi.*
-    FROM dbo.order_items oi
-    JOIN dbo.orders o ON o.id = oi.order_id
-    WHERE o.user_id != (SELECT id FROM dbo.users WHERE email = 'azmanbostjan+1@gmail.com')
+    FROM public.order_items oi
+    JOIN public.orders o ON o.id = oi.order_id
+    WHERE o.user_id != (SELECT id FROM public.users WHERE email = 'azmanbostjan+1@gmail.com')
 )
 SELECT
     CASE

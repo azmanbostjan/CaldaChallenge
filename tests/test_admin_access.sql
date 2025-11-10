@@ -4,7 +4,7 @@ BEGIN;
 SET LOCAL ROLE 'admin';
 
 WITH all_orders AS (
-    SELECT * FROM dbo.orders
+    SELECT * FROM public.orders
 )
 SELECT
     CASE

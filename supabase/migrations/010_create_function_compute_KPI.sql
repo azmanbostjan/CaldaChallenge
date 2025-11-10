@@ -3,7 +3,7 @@
 -- Computes per-user and marketing KPIs for orders
 -- Optional filters: start_date, end_date, user_ids
 -- =============================================
-CREATE OR REPLACE FUNCTION dbo.compute_kpis(
+CREATE OR REPLACE FUNCTION public.compute_kpis(
     p_start_date TIMESTAMP DEFAULT NULL,
     p_end_date TIMESTAMP DEFAULT NULL,
     p_user_ids UUID[] DEFAULT NULL
@@ -28,12 +28,12 @@ DECLARE
     start_date TIMESTAMP;
     end_date TIMESTAMP;
 BEGIN
-    start_date := COALESCE(p_start_date, (SELECT MIN(created_at) FROM stg.stg_orders));
+    start_date := COALESCE(p_start_date, (SELECT MIN(created_at) FROM public.stg_orders));
     end_date := COALESCE(p_end_date, NOW());
 
     WITH filtered_orders AS (
         SELECT *
-        FROM stg.stg_orders
+        FROM public.stg_orders
         WHERE created_at BETWEEN start_date AND end_date
           AND (p_user_ids IS NULL OR user_id = ANY(p_user_ids))
     ),
@@ -44,7 +44,7 @@ BEGIN
             u.email AS user_email,
             o.order_total
         FROM filtered_orders o
-        JOIN dbo.users u ON o.user_id = u.id
+        JOIN public.users u ON o.user_id = u.id
     ),
     user_order_items AS (
         SELECT
@@ -52,7 +52,7 @@ BEGIN
             oi.item_id,
             SUM(oi.quantity) AS total_quantity,
             SUM(oi.quantity * oi.price) AS total_revenue_item
-        FROM stg.stg_order_items oi
+        FROM public.stg_order_items oi
         JOIN user_orders uo ON oi.order_id = uo.order_id
         GROUP BY uo.user_id, oi.item_id
     ),
@@ -80,7 +80,7 @@ BEGIN
     ),
     best_selling_item_cte AS (
         SELECT item_id
-        FROM stg.stg_order_items oi
+        FROM public.stg_order_items oi
         JOIN user_orders uo ON oi.order_id = uo.order_id
         GROUP BY item_id
         ORDER BY SUM(quantity) DESC
@@ -88,7 +88,7 @@ BEGIN
     ),
     highest_revenue_item_cte AS (
         SELECT item_id
-        FROM stg.stg_order_items oi
+        FROM public.stg_order_items oi
         JOIN user_orders uo ON oi.order_id = uo.order_id
         GROUP BY item_id
         ORDER BY SUM(quantity * price) DESC

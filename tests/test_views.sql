@@ -6,15 +6,15 @@ SET LOCAL ROLE 'user';
 SELECT
     CASE
         WHEN EXISTS (
-            SELECT 1 FROM vw.available_items WHERE status != 'Available'
+            SELECT 1 FROM public.available_items WHERE status != 'Available'
         ) THEN RAISE EXCEPTION 'available_items view violation'
         ELSE RAISE NOTICE 'available_items view OK'
     END;
 
 -- Test user_order_summary view for user2
 WITH summary AS (
-    SELECT * FROM vw.user_order_summary
-    WHERE user_id = (SELECT id FROM dbo.users WHERE email = 'azmanbostjan+2@gmail.com')
+    SELECT * FROM public.user_order_summary
+    WHERE user_id = (SELECT id FROM public.users WHERE email = 'azmanbostjan+2@gmail.com')
 )
 SELECT
     CASE
