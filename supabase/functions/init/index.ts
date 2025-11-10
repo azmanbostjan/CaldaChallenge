@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from "npm:@supabase/supabase-js@2.30.0";
 import { join } from "https://deno.land/std@0.203.0/path/mod.ts";
-import { registerArchiveCron } from "../archive_old_folders/schedule.ts";
+import { registerArchiveCron } from "../schedule_archive_old_folders/index.ts";
 
 interface UserPayload {
   email: string;
@@ -172,10 +172,34 @@ async function loadOrders() {
 
 // Edge function entry point
 Deno.serve(async (_req: Request) => {
-  await loadUsers();
-  await loadOrders();
-  // Register archive_old_folders cron job
-  await registerArchiveCron("*/5 * * * *"); // every 5 minutes
+  try {
+    // Your main initialization logic
+    await loadUsers();
+    await loadOrders();
 
-  return new Response(JSON.stringify({ status: "Seed process completed and cron registered" }), { status: 200 });
+    if (Deno.env.get("SUPABASE_ENV") !== "local") {
+      await registerArchiveCron("*/5 * * * *");
+    } else {
+      console.log("Skipping cron registration in local environment");
+    }
+
+    return new Response(JSON.stringify({ status: "Seed process completed" }), { status: 200 });
+
+  } catch (err) {
+    console.error("Init function error:", err);
+
+    // Log the error to your errors table
+    try {
+      await supabase.from("errors").insert({
+        function_name: "init",
+        message: err instanceof Error ? err.message : String(err),
+        stack: err instanceof Error ? err.stack : null,
+        created_at: new Date().toISOString(),
+      });
+    } catch (dbErr) {
+      console.error("Failed to log error to database:", dbErr);
+    }
+
+    return new Response(JSON.stringify({ error: "Internal Server Error" }), { status: 500 });
+  }
 });

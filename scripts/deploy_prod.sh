@@ -1,10 +1,12 @@
 #!/usr/bin/env bash
 # scripts/deploy_prod.sh
-# Deploy all edge functions to production and push database
+# Deploy all edge functions to production and push database migrations
 
-set -e
+set -euo pipefail
 
-# Dependency checks
+# -----------------------------
+# 1. Dependency checks
+# -----------------------------
 if ! command -v npx &> /dev/null; then
   echo "npx not found. Please install Node.js and npm."
   exit 1
@@ -15,22 +17,39 @@ if ! npx supabase --version &> /dev/null; then
   exit 1
 fi
 
+# -----------------------------
+# 2. Set paths
+# -----------------------------
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 FUNCTIONS_DIR="$ROOT_DIR/supabase/functions"
 
-echo "Linking Supabase project..."
+# -----------------------------
+# 3. Link Supabase project
+# -----------------------------
 read -p "Enter your Supabase project ref: " PROJECT_REF
-npx supabase link --project-ref $PROJECT_REF
+npx supabase link --project-ref "$PROJECT_REF"
 
+# -----------------------------
+# 4. Deploy all edge functions
+# -----------------------------
 echo "Deploying all edge functions..."
+# Only deploy folders with an index.ts (skip schedule.ts)
 for dir in "$FUNCTIONS_DIR"/*/; do
-  func_name=$(basename "$dir")
-  echo "Deploying function: $func_name"
-  # Removed --no-verify-jwt flag to avoid decorator warning
-  npx supabase functions deploy "$func_name" || echo "Failed to deploy $func_name, continuing..."
+  if [[ -f "$dir/index.ts" || -f "$dir/index.js" ]]; then
+    func_name=$(basename "$dir")
+    echo "Deploying function: $func_name"
+    npx supabase functions deploy "$func_name" || {
+      echo "Failed to deploy $func_name, continuing..."
+    }
+  else
+    echo "Skipping $dir (no index.ts or index.js found)"
+  fi
 done
 
-echo "Pushing database migrations and seed data..."
+# -----------------------------
+# 5. Push database migrations
+# -----------------------------
+echo "Applying database migrations..."
 npx supabase db push
 
-echo "Production setup complete."
+echo "Production deployment complete."

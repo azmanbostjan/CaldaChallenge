@@ -15,6 +15,8 @@ Author's notes:
 Because job scheduler is not available locally, i recommend pushing to prod or running scheduled functions manually.
 Edge functions are not published with code using supabase start, so i added a bash script to publish all edge function before calling supabase start
 Commands are prefixed with npx, as i installed Supabase under a local user
+TODO
+for local dev .env also has to be set, see .env.example
 
 
 ## Project Structure
@@ -43,7 +45,7 @@ npx supabase db query tests/test_admin_access.sql
 1. **Start local Supabase:**
 ./scripts/deploy_local.sh
 2. **Seed the db**
-npx supabase functions serve init
+npx supabase functions invoke init 
 
 3. **Archive old orders manually**
 npx supabase functions invoke archive_old_folders

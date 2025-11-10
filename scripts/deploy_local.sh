@@ -1,32 +1,53 @@
 #!/usr/bin/env bash
 # scripts/deploy_local.sh
-# Deploy all edge functions locally and start Supabase
+# Start Supabase locally, serve functions, and call init
 
 set -e
 
-# Dependency checks
-if ! command -v npx &> /dev/null; then
-  echo "npx not found. Please install Node.js and npm."
+# -----------------------------
+# 1. Load environment variables
+# -----------------------------
+if [ -f .env ]; then
+  echo "Loading environment variables from .env"
+  export $(grep -v '^#' .env | xargs)
+else
+  echo ".env file not found. Exiting."
   exit 1
 fi
 
-if ! npx supabase --version &> /dev/null; then
-  echo "Supabase CLI not found. Install it with: npm install -g supabase"
-  exit 1
-fi
-
-ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-FUNCTIONS_DIR="$ROOT_DIR/supabase/functions"
-
-echo "Deploying all edge functions locally..."
-for dir in "$FUNCTIONS_DIR"/*/; do
-  func_name=$(basename "$dir")
-  echo "Deploying function: $func_name"
-  # Removed --no-verify-jwt flag to avoid decorator warning
-  npx supabase functions deploy "$func_name" || echo "Failed to deploy $func_name, continuing..."
-done
-
-echo "Starting Supabase locally..."
+# -----------------------------
+# 2. Start Supabase stack
+# -----------------------------
+echo "Starting local Supabase..."
 npx supabase start
 
-echo "Local setup complete. Supabase running at http://localhost:54321"
+# -----------------------------
+# 3. Serve functions locally in background
+# -----------------------------
+echo "Serving all edge functions locally..."
+# & to run in background so the script can continue
+npx supabase functions serve --no-verify-jwt &
+SERVE_PID=$!
+
+# Wait a few seconds to make sure Supabase + Functions are fully up
+echo "Waiting 5 seconds for functions to be ready..."
+sleep 5
+
+# -----------------------------11
+# 4. Call init function with local anon key
+# -----------------------------
+echo "Calling init function..."
+if [ -z "$SUPABASE_ANON_KEY" ]; then
+  echo "SUPABASE_ANON_KEY is not set. Make sure it is exported in .env."
+  exit 1
+fi
+
+curl -i \
+  --location \
+  --request POST "http://127.0.0.1:54321/functions/v1/init" \
+  --header "Authorization: Bearer ${SUPABASE_ANON_KEY}" \
+  --header "Content-Type: application/json" \
+  --data '{"name":"Functions"}'
+
+echo "Local deployment complete. Functions are being served with PID $SERVE_PID."
+echo "You can stop serving functions with: kill $SERVE_PID"
