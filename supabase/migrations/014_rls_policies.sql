@@ -159,3 +159,28 @@ DROP POLICY IF EXISTS "No manual delete from item_history" ON public.item_histor
 CREATE POLICY "No manual delete from item_history" ON public.item_history
 FOR DELETE
 USING (false);
+
+-- ========================================
+-- 6. function_errors table
+-- ========================================
+ALTER TABLE public.function_errors ENABLE ROW LEVEL SECURITY;
+
+-- Only admins can read/write function errors
+DROP POLICY IF EXISTS "Admins full access to function_errors" ON public.function_errors;
+CREATE POLICY "Admins full access to function_errors" ON public.function_errors
+FOR ALL
+USING ((SELECT auth.role()) = 'admin')
+WITH CHECK ((SELECT auth.role()) = 'admin');
+
+
+-- ========================================
+-- 7. seed_data table
+-- ========================================
+ALTER TABLE public.seed_data ENABLE ROW LEVEL SECURITY;
+
+-- Only admins can read/write seed_data
+DROP POLICY IF EXISTS "Admins full access to seed_data" ON public.seed_data;
+CREATE POLICY "Admins full access to seed_data" ON public.seed_data
+FOR ALL
+USING ((SELECT auth.role()) = 'admin')
+WITH CHECK ((SELECT auth.role()) = 'admin');

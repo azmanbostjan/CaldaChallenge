@@ -59,8 +59,6 @@ echo "Production deployment complete."
 # -----------------------------
 echo "Triggering init function..."
 
-# Prompt the user for their service role key
-read -p "Enter your SUPABASE_SERVICE_ROLE_KEY: " SERVICE_KEY
 
 # Construct the function URL dynamically using the project ref
 # Supabase Edge Functions URL format: https://<project_ref>.functions.supabase.co/<function_name>

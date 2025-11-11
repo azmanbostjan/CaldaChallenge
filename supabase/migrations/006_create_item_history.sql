@@ -3,6 +3,18 @@
 -- Tracks all CRUD operations on items_catalog
 -- Only stores old/new price and operation type
 -- =============================================
+
+CREATE TABLE dbo.item_history (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    item_id UUID REFERENCES public.items_catalog(id),
+    old_price NUMERIC,
+    new_price NUMERIC,
+    changed_at TIMESTAMP NOT NULL DEFAULT now(),
+    created_at TIMESTAMP NOT NULL DEFAULT now(),
+    updated_at TIMESTAMP NOT NULL DEFAULT now()
+);
+
+
 CREATE OR REPLACE FUNCTION public.track_item_changes()
 RETURNS TRIGGER
 LANGUAGE plpgsql

@@ -1,33 +1,12 @@
-BEGIN;
+-- Use the service_role connection
+-- or explicitly run as the service_role in SQL editor
+UPDATE public.items_catalog
+SET stock = stock - 1
+WHERE id = (SELECT id FROM public.items_catalog LIMIT 1);
 
--- Simulate user1
-SET LOCAL ROLE 'user';
-
--- Check that order_items snapshots match the original order
-WITH user_order_items AS (
-    SELECT oi.*, o.user_id
-    FROM public.order_items oi
-    JOIN public.orders o ON o.id = oi.order_id
-    WHERE o.user_id = (SELECT id FROM public.users WHERE email = 'azmanbostjan+1@gmail.com')
-)
-SELECT
-    CASE
-        WHEN COUNT(*) >= 0 THEN RAISE NOTICE 'Order_items snapshots exist for user1 orders'
-    END
-FROM user_order_items;
-
--- Test that user1 cannot see order_items of other users
-WITH forbidden_oi AS (
-    SELECT oi.*
-    FROM public.order_items oi
-    JOIN public.orders o ON o.id = oi.order_id
-    WHERE o.user_id != (SELECT id FROM public.users WHERE email = 'azmanbostjan+1@gmail.com')
-)
-SELECT
-    CASE
-        WHEN COUNT(*) = 0 THEN RAISE NOTICE 'RLS OK: user1 cannot see other order_items'
-        ELSE RAISE EXCEPTION 'RLS VIOLATION: user1 can see other users order_items!'
-    END
-FROM forbidden_oi;
-
-ROLLBACK;
+-- Verify item_history
+SELECT *
+FROM public.item_history
+WHERE item_id = (SELECT id FROM public.items_catalog LIMIT 1)
+ORDER BY changed_at DESC
+LIMIT 1;

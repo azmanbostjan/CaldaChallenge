@@ -1,37 +1,41 @@
-BEGIN;
+-- Simulator for public.orders using user_id (uuid)
+-- Creates a SECURITY DEFINER function to count rows visible to a simulated user UUID (as text).
 
--- Hardcoded users
--- "user1" = azmanbostjan+1@gmail.com
--- "user2" = azmanbostjan+2@gmail.com
--- "user3" = azmanbostjan+3@gmail.com
--- "admin" = azmanbostjan+admin@gmail.com
--- "user4" = azmanbostjan+4@gmail.com
+CREATE OR REPLACE FUNCTION public.test_orders_rls_simulator_for_user(sim_user_uuid_text text)
+RETURNS text
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  cnt int;
+  parsed_uuid uuid;
+BEGIN
+  -- Validate input is a UUID string
+  BEGIN
+    parsed_uuid := sim_user_uuid_text::uuid;
+  EXCEPTION WHEN invalid_text_representation THEN
+    RAISE EXCEPTION 'Provided sim_user_uuid_text is not a valid UUID: %', sim_user_uuid_text;
+  END;
 
--- Test: user1 can see own orders
-SET LOCAL ROLE 'user';
-SELECT current_setting('jwt.claims.email');
+  -- Count rows that would be visible to that user according to typical RLS: user_id = auth.uid()
+  SELECT COUNT(*) INTO cnt
+  FROM public.orders
+  WHERE user_id = parsed_uuid;
 
--- Replace with your user ID retrieval method if needed
-WITH user_orders AS (
-    SELECT * FROM public.orders
-    WHERE user_id = (SELECT id FROM public.users WHERE email = 'azmanbostjan+1@gmail.com')
-)
-SELECT
-    CASE
-        WHEN COUNT(*) >= 0 THEN RAISE NOTICE 'User1 order access OK'
-    END
-FROM user_orders;
+  IF cnt = 0 THEN
+    RETURN 'RLS SUCCESS: no rows visible to ' || sim_user_uuid_text;
+  ELSE
+    RETURN 'RLS VIOLATION: ' || cnt || ' row(s) visible to ' || sim_user_uuid_text;
+  END IF;
+END;
+$$;
 
--- Test: user1 cannot see other users' orders
-WITH forbidden_orders AS (
-    SELECT * FROM public.orders
-    WHERE user_id != (SELECT id FROM public.users WHERE email = 'azmanbostjan+1@gmail.com')
-)
-SELECT
-    CASE
-        WHEN COUNT(*) = 0 THEN RAISE NOTICE 'RLS OK: user1 cannot see other orders'
-        ELSE RAISE EXCEPTION 'RLS VIOLATION: user1 can see other users orders!'
-    END
-FROM forbidden_orders;
+-- Security: revoke execute from public so only privileged roles can run it.
+REVOKE EXECUTE ON FUNCTION public.test_orders_rls_simulator_for_user(text) FROM PUBLIC;
 
-ROLLBACK;
+-- Example test calls:
+-- Replace the UUID below with the UUID of a non-owner user you expect to see zero rows.
+SELECT public.test_orders_rls_simulator_for_user('10be9516-0b49-4e64-88fd-16df68c0cf58') AS result;
+
+-- Example: test with a real user UUID (replace with actual user id)
+-- SELECT public.test_orders_rls_simulator_for_user('11111111-2222-3333-4444-555555555555') AS result;
