@@ -26,11 +26,6 @@ CaldaChallenge/
 ## Db schema diagram url:
 https://dbdiagram.io/d/6910db506735e11170f27c67
 
-
-**Project credentials**
-email: azmanbostjan@gmail.com,
-password: Caldachallenge123!
-
 ## Getting Started prod
 **Start local Supabase:**
 ./scripts/deploy_prod.sh
