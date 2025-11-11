@@ -39,14 +39,14 @@ password: Caldachallenge123!
 1. **Start local Supabase:**
 ./scripts/deploy_local.sh
 
-**Dev log**
+## **Dev log**
 Author's notes:
-Because job scheduler is not available locally, i recommend pushing to prod or running scheduled functions manually.
-Edge functions are not published with code using supabase start, so i added a bash script to publish all edge function before calling supabase start
-Commands are prefixed with npx, as i installed Supabase under a local user
-Tests are meant to be run in prod env SQL editor.
+- because job scheduler is not available locally, i recommend pushing to prod or running scheduled functions manually.
+- edge functions are not published with code using supabase start, so i added a bash script to publish all edge function before calling supabase start
+- commands are prefixed with npx, as i installed Supabase under a local user
+- tests are meant to be run in prod env SQL editor.
 
-**TODOS**
+## **TODOS**
 - ensure views are exposed only to admin users
 - optimise RLS policies
 - add guest role for users that are not logged and can only see item catalog
