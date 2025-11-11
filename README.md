@@ -32,16 +32,16 @@ email: azmanbostjan@gmail.com,
 password: Caldachallenge123!
 
 ## Getting Started prod
-1. **Start local Supabase:**
+**Start local Supabase:**
 ./scripts/deploy_prod.sh
 
 ## Getting Started local
-1. **Start local Supabase:**
+**Start local Supabase:**
 ./scripts/deploy_local.sh
 
 ## **Dev log**
 Author's notes:
-- because job scheduler is not available locally, i recommend pushing to prod or running scheduled functions manually.
+- because job scheduler is not available locally, i recommend pushing to prod to test all features or running scheduled functions manually.
 - edge functions are not published with code using supabase start, so i added a bash script to publish all edge function before calling supabase start
 - commands are prefixed with npx, as i installed Supabase under a local user
 - tests are meant to be run in prod env SQL editor.
