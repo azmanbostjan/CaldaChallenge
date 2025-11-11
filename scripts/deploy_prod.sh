@@ -59,15 +59,20 @@ echo "Production deployment complete."
 # -----------------------------
 echo "Triggering init function..."
 
+# Prompt for Supabase service role key (hidden input)
+read -sp "Enter your Supabase SERVICE_KEY: " SERVICE_KEY
+echo
+
+# Export it so it can be used by curl
+export SERVICE_KEY
 
 # Construct the function URL dynamically using the project ref
-# Supabase Edge Functions URL format: https://<project_ref>.functions.supabase.co/<function_name>
 INIT_URL="https://${PROJECT_REF}.functions.supabase.co/init"
 
 # Trigger the init function
 curl -s -X POST "$INIT_URL" \
   -H "Authorization: Bearer $SERVICE_KEY" \
   -H "Content-Type: application/json" \
-  -d '{}' 
+  -d '{}'
 
 echo "Init function triggered at $INIT_URL"

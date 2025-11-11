@@ -12,6 +12,12 @@ interface OrderItemInput {
     price: number;
 }
 
+interface CatalogItem {
+    id: string;
+    stock: number;
+    name: string;
+}
+
 Deno.serve(async (req: Request): Promise<Response> => {
     try {
         if (req.method !== "POST") {
@@ -25,19 +31,29 @@ Deno.serve(async (req: Request): Promise<Response> => {
             throw new Error(`Invalid payload: missing required field(s) or malformed items. Payload received: ${JSON.stringify(body, null, 2)}`);
         }
 
-        // Calculate sum of all existing orders before inserting new one
-        const { data: existingOrdersSumData, error: sumError } = await supabase
-            .from("orders")
-            .select("order_items(quantity, price)")
-        if (sumError) throw sumError;
+        // ============================
+        // Step 1: Check stock availability
+        // ============================
+        const itemIds = items.map((i: OrderItemInput) => i.item_id);
+        const { data: catalogItems, error: catalogError } = await supabase
+            .from("items_catalog")
+            .select("id, stock, name")
+            .in("id", itemIds);
+        if (catalogError) throw catalogError;
 
-        let totalExistingOrders = 0;
-        for (const order of existingOrdersSumData ?? []) {
-            if (order.order_items) {
-                totalExistingOrders += order.order_items.reduce((acc: number, i: { quantity: number; price: number }) => acc + i.quantity * Number(i.price), 0);
+        for (const i of items as OrderItemInput[]) {
+            const catalogItem = catalogItems!.find((ci: CatalogItem) => ci.id === i.item_id)!;
+            if (!catalogItem) {
+                throw new Error(`Item not found in catalog: ${i.item_id}`);
+            }
+            if (i.quantity > catalogItem.stock) {
+                throw new Error(`Insufficient stock for item ${catalogItem.name} (${i.item_id}). Requested: ${i.quantity}, Available: ${catalogItem.stock}`);
             }
         }
 
+        // ============================
+        // Step 2: Check existing order for user
+        // ============================
         let orderId: string;
         const { data: existingOrder, error: existingError } = await supabase
             .from("orders")
@@ -68,6 +84,9 @@ Deno.serve(async (req: Request): Promise<Response> => {
             console.log("Inserted new order for user:", user_id);
         }
 
+        // ============================
+        // Step 3: Insert order items & decrement stock
+        // ============================
         for (const i of items as OrderItemInput[]) {
             const { data: existingOrderItem, error: checkItemError } = await supabase
                 .from("order_items")
@@ -78,6 +97,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
             if (checkItemError) throw checkItemError;
 
             if (!existingOrderItem) {
+                // Insert order item
                 const { error: itemInsertError } = await supabase.from("order_items").insert([{
                     order_id: orderId,
                     item_id: i.item_id,
@@ -87,8 +107,32 @@ Deno.serve(async (req: Request): Promise<Response> => {
                 }]);
                 if (itemInsertError) throw itemInsertError;
                 console.log(`Added item ${i.item_id} to order ${orderId}`);
+
+                // Decrement stock
+                const catalogItem = catalogItems!.find((ci: CatalogItem) => ci.id === i.item_id)!;
+                const { error: stockUpdateError } = await supabase
+                    .from("items_catalog")
+                    .update({ stock: catalogItem.stock - i.quantity })
+                    .eq("id", i.item_id);
+                if (stockUpdateError) throw stockUpdateError;
+                console.log(`Updated stock for item ${i.item_id}: ${catalogItem.stock} -> ${catalogItem.stock - i.quantity}`);
             } else {
                 console.log(`Skipped existing item ${i.item_id} for order ${orderId}`);
+            }
+        }
+
+        // ============================
+        // Step 4: Compute total of existing orders (optional)
+        // ============================
+        const { data: existingOrdersSumData, error: sumError } = await supabase
+            .from("orders")
+            .select("order_items(quantity, price)");
+        if (sumError) throw sumError;
+
+        let totalExistingOrders = 0;
+        for (const order of existingOrdersSumData ?? []) {
+            if (order.order_items) {
+                totalExistingOrders += order.order_items.reduce((acc: number, i: { quantity: number; price: number }) => acc + i.quantity * Number(i.price), 0);
             }
         }
 
@@ -102,7 +146,7 @@ Deno.serve(async (req: Request): Promise<Response> => {
             await supabase.from("function_errors").insert([{
                 function_name: "create_order",
                 error_message: (err as Error).message,
-                payload: JSON.stringify(req.body ?? null),
+                payload: JSON.stringify(await req.json() ?? null),
                 created_at: new Date().toISOString(),
             }]);
         } catch (logErr) { console.error("Failed to log error:", logErr); }
